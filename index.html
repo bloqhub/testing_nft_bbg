@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en-US">
+   <head>
+      <meta charset="UTF-8">
+      <title>Testing BBG ABI</title>
+      <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+      <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" crossorigin="anonymous"></script>
+   </head>
+   <body>
+     <div>
+      Website:
+      <a href="https://www.bornbadgirls.com/" target="_blank">bornbadgirls.com</a><br>
+       Mainnet Contract:
+       <a href="https://bscscan.com/address/0x3da8410e6EF658c06E277a2769816688c37496CF" target="_blank">0x3da8410e6EF658c06E277a2769816688c37496CF</a><br>
+       Testnet Contract:
+       <a href="https://testnet.bscscan.com/address/0xbe1a1dc4126f73aeb6293cacab369daf56b1c0a5" target="_blank">0xbe1a1dc4126f73aeb6293cacab369daf56b1c0a5</a><br>
+       Marketplaces<br>
+       <a href="https://pancakeswap.finance/nfts/collections/0x3da8410e6EF658c06E277a2769816688c37496CF" target="_blank">PancakeSwap</a><br>
+       <a href="https://nftrade.com/assets/bsc/0x3da8410e6EF658c06E277a2769816688c37496CF" target="_blank">NFT Trade</a><br>
+       <a href="https://nftkey.app/collections/bornbadgirls/" target="_blank">NFTKEY</a><br>
+       <a href="https://lootex.io/stores/bornbadgirls" target="_blank">Lootex</a><br>
+      </div>
+     <div>
+       <textarea rows=8" cols="100">
+function mintNFT() public payable whenNotPaused {
+    require(totalSupply() < MAX_NFT_SUPPLY, "Sale has already ended");
+    require(getNFTPrice() == msg.value, "BNB value sent is not correct");
+    // Incrementing ID to create new token
+    _tokenIdentifiers.increment();
+    uint256 newRECIdentifier = _tokenIdentifiers.current();
+    _safeMint(msg.sender, newRECIdentifier);
+}
+       </textarea>
+     </div>
+      <button id="connect-wallet">Connect</button><br>
+      <button id="mint-button">Mint</button><br>
+      <div id="total-supply"></div>
+      <div id="nft-balance"></div>
+      <script>
+          walletConnected = false;
+          var contract, account;
+          $('#connect-wallet').click(async function() {
+            console.log("Connect is clicked!");
+            if (window.ethereum) {
+                chainID = await window.ethereum.send('eth_chainId');
+                console.log("chainID" + chainID);
+                walletConnected = true;
+                await window.ethereum.send('eth_requestAccounts');
+                window.web3 = new Web3(window.ethereum);
+                var accounts = await web3.eth.getAccounts();
+                const address = "0xbe1a1dc4126f73aeb6293cacab369daf56b1c0a5";
+                const abi = [
+                  {"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+                  {"inputs":[],"name":"mintNFT","outputs":[],"stateMutability":"payable","type":"function"}
+                ];
+                const contract = new web3.eth.Contract(abi, address);
+                account = accounts[0];
+                if (accounts.length > 0) {
+                  document.getElementById('connect-wallet').disabled = true;
+                } else {
+                  document.getElementById('connect-wallet').disabled = false;
+                }
+                console.log("Connected to "+account);
+                document.getElementById('connect-wallet').textContent = account.substring(0, 5)+"..."+account.substring(account.length - 5);
+                $('#mint-button').click(async () => {
+                  try {
+                    accounts = await web3.eth.getAccounts()
+                    account = accounts[0];
+                    tx = await contract.methods.mintNFT().send({from: account, value: "300000000000000000"});
+                    if (tx.status) {
+                      console.log("Your mint was successful!", "success");
+                      txRecipt = await web3.eth.getTransactionReceipt(tx.transactionHash);
+                      console.log(txRecipt);
+                      console.log(txRecipt.logs[0]);
+                    } else {
+                      console.log("Unable to mint!");
+                      txRecipt = await web3.eth.getTransactionReceipt(tx.transactionHash);
+                      console.log(txRecipt);
+                      console.log(txRecipt.logs[0]);
+                    }
+                  } catch (error) {
+                    console.log("Error while minting!");
+                  }
+                })
+                function handleAccountsChanged(accounts) {
+                  if (accounts.length === 0) {
+                    logoutButton.style['display'] = "none";
+                    loginButton.style['display'] = "inline";
+                  } else {
+                    if (accounts[0] !== account) {
+                      account = accounts[0]
+                    }
+                    document.getElementById('connect-wallet').innerText = account.substring(0, 5)+"..."+account.substring(account.length - 5);
+                  }
+                }
+                ethereum.on('accountsChanged', handleAccountsChanged);
+                contract.methods.totalSupply().call().then(function(supply) {
+                  $("#total-supply").text("Mint Status: "+supply+"/4444");
+                })
+            }
+          })
+        </script>
+   </body>
+</html>
